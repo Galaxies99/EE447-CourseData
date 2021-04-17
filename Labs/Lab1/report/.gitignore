@@ -1,0 +1,6 @@
+.history/
+*.aux
+*.log
+*.out
+*.synctex.gz
+
