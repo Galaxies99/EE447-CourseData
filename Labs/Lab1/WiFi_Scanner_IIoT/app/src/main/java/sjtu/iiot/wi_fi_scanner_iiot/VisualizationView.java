@@ -1,5 +1,6 @@
 package sjtu.iiot.wi_fi_scanner_iiot;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -9,6 +10,7 @@ import android.graphics.Paint;
 import android.util.DisplayMetrics;
 import android.view.View;
 
+@SuppressLint("ViewConstructor")
 class VisualizationView extends View {
 
     public Canvas canvas;
@@ -49,13 +51,6 @@ class VisualizationView extends View {
         p.setStrokeWidth(8);
 
         this.getIntent = getIntent;
-        initParameter();
-        Draw();
-        makeLabels();
-    }
-
-    // [-10, 10] range
-    private void initParameter() {
         bgColor = Color.WHITE;
         padding_x = (double)(width - EDGE_WIDTH) / 2;
         padding_y = 50;
@@ -70,9 +65,7 @@ class VisualizationView extends View {
         }
         positionX = padding_x + (10.0 + getIntent.getDoubleExtra("positionX", 0)) * PIXELS_PER_METER;
         positionY = padding_y + (10.0 + getIntent.getDoubleExtra("positionY", 0)) * PIXELS_PER_METER;
-    }
 
-    private void Draw() {
         // background
         p.setColor(bgColor);
         canvas.drawRect(0, 0, width, height, p);
@@ -103,9 +96,8 @@ class VisualizationView extends View {
         canvas.drawRect(0, 0, (float)padding_x, height, p);
         canvas.drawRect(0, (float)(padding_y + EDGE_HEIGHT), width, height, p);
         canvas.drawRect((float)(padding_x + EDGE_WIDTH), 0, width, height, p);
-    }
 
-    private void makeLabels() {
+        // labels
         p.setColor(Color.BLACK);
         p.setTextSize(40);
         for (int index = 1; index <= NumberOfWifi; index++) {
