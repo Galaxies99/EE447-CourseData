@@ -72,7 +72,12 @@ After a transaction is confirmed, an attacker attempts to cause the transaction 
 	E(cost) = \sum_{x=0}^\infty P(x) \cdot (k+2x+2)c > w
 	$$
 
-	Since the formula includes infinite summation, and it is difficult to derive the close form solution to $P(x)$, we write a program to give the numerical solution. Since it may take long to convergence, and the value of the combination numbers may be extremely large. We use linear regression to predict $P(x) \cdot (k + 2x + 2) \cdot c$ for large $x$, until this term reaches negative.
+	Since the formula includes infinite summation, and it is difficult to derive the close form solution to $P(x)$, we write a program to give the numerical solution. Since it may take long to convergence, and the value of the combination numbers may be extremely large, when $P(x_0)$ becomes too large to be computed for some $x_0$, we use the following form to estimate the rest part of the expected cost:
+	$$
+	\left(1 - \sum_{x=0}^{x_0-1} P(x)\right) \cdot (k + 2x_0 + 2)
+	$$
+	
+	Notice that it is a quite loose lower bound estimation for expected cost, so for example, when we find out the expected cost calculated using this approach is quite close to $100$, we can confidently say that it has reached $100$.
 \begin{lstlisting}[language=python]
 def calc_expected_cost(k, p, c):
     '''
@@ -84,33 +89,25 @@ def calc_expected_cost(k, p, c):
     
     Returns
     -------
-    The numerical value of expected cost.
+    The numerical value of expected cost (a quite loose lower bound).
     '''
     E = 0
     P = []
-    D = []
     x = 0
+    residual_P = 1
     while True:
         Px = comb(k + x + x + 2, x) * pow(p, k + x + 2) * pow(1 - p, x)
         if x > 0:
-            for y in range(x - 1):
+            for y in range(x):
                 Px = Px - P[y] * comb(2 * (x - y), (x - y)) 
                                * pow(p, x - y) * pow(1 - p, x - y)
         if Px == np.inf:
+            delta = residual_P * (k + x + x + 2) * c
+            E += delta
             break
+        residual_P -= Px
         P.append(Px)
         delta = Px * (k + x + x + 2) * c
-        D.append(delta)
-        E += delta
-        x += 1
-    
-    reg = LinearRegression()
-    reg.fit(np.array(range(x - 100, x)).reshape(-1, 1), D[len(D) - 100:])
-
-    while True:
-        delta = reg.predict(np.array([x]).reshape(1, -1))[0]
-        if delta < 0:
-            break
         E += delta
         x += 1
     return E 
@@ -118,39 +115,43 @@ def calc_expected_cost(k, p, c):
 	Set $p = 0.51$, $c = 1$ (unit: \$10,000), and enumerate $k$ then execute the program, we can list the influence of $k$ on the expected cost as follows.
 	\begin{table}[htbp]
 		\centering
-		\caption{The influence of $k$ on the expected cost $E(cost)$}
+		\caption{The influence of $k$ on the lower bound of the expected cost $\hat{E}(cost)$}
 		\label{tab1}
 		\begin{tabular}{|c|c|c|c|}  
 			\hline  % 表格的横线
-			$k$ & $E(cost)$ (unit: \$10,000) & $k$ & $E(cost)$ (unit: \$10,000)\\ \hline
-			0 & 44.78934262241547 &10 & 306.67805412101393 \\
-			1 & 73.84332272554721 &11 & 330.5734107375575 \\
-			2 & \textbf{102.10130199424312} &12 & 354.03950302354417 \\
-			3 & 129.73732618945058 & 13 & 377.84293299662426 \\
-			4 & 156.59278841516797 & 14 & 401.45768077718634 \\
-			5 & 182.95282187095157 & 15 & 425.7710396374425 \\
-			6 & 208.56668084212004 & 16 & 450.26824220324215 \\
-			7 & 233.8359965147291 &17 & 475.955250947649 \\
-			8 & 258.4203552586561 & 18 & 502.41497625543695\\
-			9 & 282.84179355170596 &19 & 530.7735112002084 \\ \hline	
+			$k$ & $\hat{E}(cost)$ (unit: \$10,000) & $k$ & $E(cost)$ (unit: \$10,000)\\ \hline
+			0 & 66.84764418538134 &10 & 335.32336594674837 \\
+			1 & \textbf{99.3330221920333} &11 & 361.68535565110346 \\
+			2 & 131.10351766835387 &12 & 387.66995436674824 \\
+			3 & 162.30256950229375 & 13 & 412.6743326218215 \\
+			4 & 192.73423569681148 & 14 & 461.0166325876901 \\
+			5 & 222.63525872853995 & 15 & 484.4196820771411 \\
+			6 & 251.71591535341102 & 16 & 506.7371417498421 \\
+			7 & 280.31197059901575 &17 & 528.872260711527 \\
+			8 & 308.0343954464944 & 18 & 549.8700375900288\\
+			9 & 335.32336594674837 &19 & 570.7583380709489 \\ \hline	
 		\end{tabular}
 	\end{table}
 	\begin{figure}[htbp]
 		\centering
 		\includegraphics[width=0.7\linewidth]{2.png}
-		\caption{The influence of $k$ on the expected cost $E(cost)$}
+		\caption{The influence of $k$ on the lower bound of the expected cost $\hat{E}(cost)$}
 		\label{fig2}
 	\end{figure}
 
-	From Tab. \ref{tab1} and Fig. \ref{fig2} we can see that when $k = 2$, $E(cost) \approx \$102101 > \$100000 = w$. Hence, we choose $k = 2$ as our answer.
+	From Tab. \ref{tab1} and Fig. \ref{fig2} we can see that when $k = 1$, $\hat{E}(cost) \approx \$993,330$. According to the previous proposition, since we the estimate expected cost is only a loose lower bound, so we can confidently say that when $k=1$, $E(cost) > \$1,000,000$. Hence, we choose $k = 1$ as our answer.
 
 	Now, let us interpret the answer in a more intuitive way. According to the setting of the problem, the attack branch of attacker takes 49\% blocks while others takes 51\% blocks when given a certain number of blocks. From the attacker's view, the success of attack needs
 	$$
 	\frac{1 + 2\%}{2}x - \frac{1 - 2\%}{2}x > k + 1
 	$$
-	Notice here we use $> k + 1$ instead of $\ge k + 2$ because in the meaning of expectation, we need continuous variables instead of discrete variables. Also, the attacker know that his/her profit must be non-negative, which indicates $x \leq 100$ according to the setting of the problem. Therefore, the critical value for successful attacking is $k = 1$. Hence, we need to set at least $k = 2$ to prevent attacking according to the configuration of the problem.
+	Notice here we use $> k + 1$ instead of $\ge k + 2$ because in the meaning of expectation, we need continuous variables instead of discrete variables. Also, the attacker know that his/her profit must be non-negative, which indicates $x \leq 100$ according to the setting of the problem. Therefore, for attackers to succeed,
+	$$
+	k < 0.02 x - 1 \leq 0.02 \cdot 100 - 1 = 1
+	$$
+	Hence, we need to set at least $k = 1$ to prevent attacking according to the problem settings.
 
-	In conclusion, the minimum size to ensure that the expected cost of the transaction to be successfully tampered with by an attacker using 51\% of the computing power is higher than the amount of the transaction is $k = 2$.
+	In conclusion, the minimum size to ensure that the expected cost of the transaction to be successfully tampered with by an attacker using 51\% of the computing power is higher than the amount of the transaction is $k = 1$.
 \end{solution}
 
 \end{document}
