@@ -91,8 +91,8 @@ This Lab focuses on the table line reconstruction for the tables without frame l
 	\item \textbf{(Bonus)} How to accurately identify the header of the table, and use natural language processing (NLP) or other methods to understand the information in the table, and then extract the entities and relationships from table to construct a specific knowledge graph?
 \end{enumerate}
 
-\section{Algorithms Explanation and Implementation}
-In this section, we will explain the algorithm of completing table line drawing in given code.
+\section{Frameline-drawing Algorithm}\label{section2}
+In this section, we will explain the algorithm of completing table frameline drawing in given code.
 
 \begin{itemize}
 	\item We first convert the image to gray-scale image, which will make things easier since we do not need to worry about the color of the word in the table. Then, we extract the edges of the table, which is used to detect the partial-drawing lines in the table.
@@ -176,6 +176,46 @@ We implement the algorithm based on the given code in python. Fig. \ref{fig1}, F
 
 \paragraph{Analyses} From results we can observe that, our algorithm can detect the table boundary accurately, which completes table reconstruction task.
 
+\section{Extracting Tables from PDFs}
+We use a open-source project pdftotree\footnotemark[1] to
+get the hierarchical tree of context objects such as text blocks, figures, tables, etc. For tables, it will extract their bounding boxes. Therefore, we can use the bounding boxes to extract tables from PDF files. Here is the specific pipeline:
+\begin{enumerate}
+\item Use pdftotree\footnotemark[1] to get the hierarchical tree of the context objects.
+\item Find table objects in the tree extracted in step 1, and get the bounding boxes of the tables from the extracted tree.
+\item Extract tables according to the bounding boxes.
+\end{enumerate}
+
+Here is an example of the bounding boxes we extracted from a PDF paper\footnotemark[2].
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=0.9\linewidth]{table-bounding-boxes.png}
+	\caption{The bounding boxes of the table, which is extracted using pdftotree}
+	\label{fig6.5}
+\end{figure}
+
+Then, we can easily extract the images from the PDF file, and use the algorithms introduced in Section \ref{section2} to draw the framelines. The results are shown in Fig. \ref{fig6.8} in the next page. Therefore, we have successfully build a pipeline to extract tables from PDFs and reconstruct the framelines of the tables.
+
+
+\begin{figure}[htbp]
+	\centering
+		\begin{minipage}[t]{0.4\linewidth}
+		\centering
+		\includegraphics[width=\linewidth]{reconstructed_6.png}
+		\end{minipage}
+		\begin{minipage}[t]{0.4\linewidth}
+		\centering
+		\includegraphics[width=\linewidth]{reconstructed_7.png}
+		\end{minipage}
+	\caption{The original table and the reconstructed table (4)}
+	\label{fig6.8}
+\end{figure}
+
+
+
+\footnotetext[1]{\url{https://github.com/HazyResearch/pdftotree}}
+\footnotetext[2]{Yang, Xiao, et al. "Adversarial training for community question answer selection based on multi-scale matching." Proceedings of the AAAI Conference on Artificial Intelligence. Vol. 33. No. 01. 2019.}
+
 \section{Answers to Questions}
 
 \begin{enumerate}
@@ -191,10 +231,13 @@ We implement the algorithm based on the given code in python. Fig. \ref{fig1}, F
 	\end{enumerate}
 
 	In contemperary papers, tables all have a header, which should have be the destination of a hyper-link somewhere. Therefore, for this kind of papers, we just need to find all the hyper-links, and use the methods we proposed above to check whether it is a table.
+
+	In our pipeline, we use a handy tool pdftotree\footnotemark[1] to automatically find the tables in the PDFs using pretrained machine learning models.
+
 	\item \textbf{Q}: What do you think is the most difficult step to extract the table from the PDF? Why?
 	
-	\textbf{A}: I think the most difficult step is to further parse the reconstructed paper into structured data. We know that the table may have various structures, such as merging several cells into one, \textit{etc}. Under such circumstances, our previous algorithm may divide the combined block into several blocks, and use several lines to represent a block. For example, our algorithm may misidentify table structure as shown in Fig. \ref{fig6}
-
+	\textbf{A}: Our pipeline only completes the prepositive works, such as extract tables from PDF file and perform table reconstruction by drawing framelines. The process is not very difficult, since we can use many handy tools to efficient parse a large batch of PDF files, extract tables according to bounding boxes coordinates, and draw framelines using digital image processing knowledges. \textbf{I think the most difficult step of the table reconstruction task is to further parse the reconstructed paper into structured data.} We know that the table may have various structures, such as merging several cells into one, \textit{etc}. Under such circumstances, our previous algorithm may divide the combined block into several blocks, and use several lines to represent a block. For example, our frameline-drawing algorithm may misidentify table structure as shown in Fig. \ref{fig6} in the next page.
+	\footnotetext[1]{\url{https://github.com/HazyResearch/pdftotree}}
 	\begin{figure}[htbp]
 		\centering
 			\begin{minipage}[t]{0.4\linewidth}
@@ -226,19 +269,19 @@ We implement the algorithm based on the given code in python. Fig. \ref{fig1}, F
 
 \section{Conclusion}
 
-In this lab, we explore the table reconstruction tasks of PDF files. I make clear explanations to the given code and modify the code a bit to satisfy the task settings. We have shown our reconstruction results and they are quite satisfiable: they can detect the table boundary accurately and reconstruct the table using several horizontal and vertical lines.
+In this lab, we explore the table reconstruction tasks of PDF files. I make clear explanations to the given code and modify the code a bit to satisfy the task settings. We have shown our reconstruction results and they are quite satisfiable: they can detect the table boundary accurately and reconstruct the table using several horizontal and vertical lines. We also propose a handy pipeline to extract tables from PDF files, and reconstruct it by drawing framelines.
 
 We also explore further in the questions of how to extract information from the PDF file. We have proposed three ideas concerning three aspects:
 \begin{itemize}
 	\item Take the ``identify the header'' task as a computer vision task and use models like ResNets\footnotemark[1] to identify the header efficiently and effectively in scanned PDF documents. Check the destinations of hyper-links to identify the headers in today's PDf documents.
-	\item Take the ``Extract information in the table'' as an image segmentation task. Recognize the texts using OCR techniques and extract the precise structure of the table using image segmentation models. Therefore, we can extract more accurate information from the table.
+	\item Take the ``Extract information in the table'' as an image segmentation task. Recognize the texts using OCR techniques and extract the precise structure of the table using image segmentation models. Therefore, we can extract more accurate information from the table. Actually, the pdftotree\footnotemark[4] tool we used is based on the same idea.
 	\item Take ``Build a knowledge graph'' as an natural language processing task. Use models like Bert\footnotemark[2] to extract embeddings from row name and column name. Then, use the data as the label of the edge between row name and the column name in the knowledge graph. Finally, extract the information you want from the built knowledge graph.
 \end{itemize}
 
 In conclusion, I gain knowledges from this lab and I think the lab benifits me a lot.
 
 The full implementation codes of the lab is available in my \href{https://github.com/Galaxies99/EE447-CourseData/tree/main/Labs/Lab4}{github repository}. For other questions about the lab, please feel free to send an e-mail\footnotemark[3] to me.
-
+\footnotetext[4]{\url{https://github.com/HazyResearch/pdftotree}}
 \footnotetext[3]{\url{mailto:galaxies@sjtu.edu.cn}}
 %========================================================================
 \end{document}
